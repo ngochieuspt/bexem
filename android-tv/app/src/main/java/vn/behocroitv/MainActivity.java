@@ -89,7 +89,7 @@ public class MainActivity extends Activity {
         panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setGravity(Gravity.CENTER_HORIZONTAL);
-        panel.setPadding(dp(22), dp(16), dp(22), dp(18));
+        panel.setPadding(dp(22), dp(18), dp(22), dp(20));
         panel.setBackground(bg(Color.rgb(20, 48, 89), 16));
 
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
@@ -97,11 +97,10 @@ public class MainActivity extends Activity {
         center.addView(panel, new LinearLayout.LayoutParams(width, -2));
 
         panel.addView(label("BÉ HỌC RỒI XEM TV", 27, true));
-        panel.addView(label("KIẾN THỨC LỚP 6", 19, false));
         panel.addView(label("Quyền hiển thị: " +
                 (Settings.canDrawOverlays(this) ? "Đã cấp" : "Chưa cấp"), 17, false));
 
-        action("1. Cấp quyền hiển thị", () -> {
+        action("Cấp quyền hiển thị", () -> {
             try {
                 startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                         android.net.Uri.parse("package:" + getPackageName())));
@@ -110,7 +109,7 @@ public class MainActivity extends Activity {
             }
         });
 
-        panel.addView(label("Thời gian giữa các câu hỏi", 18, false));
+        panel.addView(label("Hỏi sau mỗi", 18, false));
         Spinner spinner = new Spinner(this);
         String[] choices = {"5 phút", "10 phút", "15 phút", "20 phút"};
         int[] times = {5, 10, 15, 20};
@@ -129,7 +128,7 @@ public class MainActivity extends Activity {
             public void onNothingSelected(android.widget.AdapterView<?> p) {}
         });
 
-        action("2. Bắt đầu đếm thời gian", () -> {
+        action("Bắt đầu", () -> {
             if (!Settings.canDrawOverlays(this)) {
                 Toast.makeText(this, "Cần cấp quyền hiển thị", Toast.LENGTH_LONG).show();
                 return;
@@ -139,7 +138,7 @@ public class MainActivity extends Activity {
             showPanel();
         });
 
-        action("3. Kiểm tra câu hỏi ngay", () -> {
+        action("Thử câu hỏi", () -> {
             if (!Settings.canDrawOverlays(this)) {
                 Toast.makeText(this, "Cần cấp quyền hiển thị", Toast.LENGTH_LONG).show();
                 return;
@@ -148,15 +147,15 @@ public class MainActivity extends Activity {
             startServiceWithAction("TEST");
         });
 
-        action("4. Dừng giám sát", () -> {
+        action("Tắt", () -> {
             prefs.edit().putBoolean("enabled", false).apply();
             stopService(new Intent(this, QuizService.class));
             showPanel();
         });
 
-        panel.addView(label("TRẠNG THÁI: " +
-                (prefs.getBoolean("enabled", false) ? "ĐANG BẬT" : "ĐANG TẮT"), 19, true));
-        panel.addView(label("Sau 10 phút, câu hỏi sẽ xuất hiện khi dịch vụ nền được phép hoạt động.", 15, false));
+        panel.addView(label("Trạng thái: " +
+                (prefs.getBoolean("enabled", false) ? "Đã bật" : "Đã tắt"), 19, true));
+        panel.addView(label("Trả lời đúng để tiếp tục xem TV.", 15, false));
 
         root.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
         setContentView(root);
