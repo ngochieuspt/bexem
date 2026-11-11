@@ -247,57 +247,111 @@ public class QuizService extends Service {
         mount(frame, first);
     }
 
+    private Button pinKey(String label, Runnable action) {
+        Button key = new Button(this);
+        key.setText(label);
+        key.setTextSize(24);
+        key.setTextColor(Color.WHITE);
+        key.setTypeface(null, Typeface.BOLD);
+        key.setAllCaps(false);
+        key.setFocusable(true);
+        key.setBackground(rounded(NORMAL, 10, false));
+        key.setOnFocusChangeListener((v, focused) ->
+                key.setBackground(rounded(focused ? GREEN : NORMAL, 10, focused)));
+        key.setOnClickListener(v -> action.run());
+        return key;
+    }
+
     private void showBreak() {
         if (overlay != null || !Settings.canDrawOverlays(this)) return;
         FrameLayout frame = new OverlayFrame(this);
         LinearLayout card = newCard(frame);
-        card.addView(text("ĐẾN GIỜ NGHỈ NGƠI!", 30, true));
-        card.addView(text("Bạn đã xem TV đủ 60 phút. Hãy nghỉ ngơi nhé!", 23, false));
-        card.addView(text("Nhập mật khẩu phụ huynh để tiếp tục xem", 18, false));
-        EditText pin = new EditText(this);
-        pin.setHint("Mật khẩu");
-        pin.setSingleLine(true);
-        pin.setTextSize(23);
-        pin.setTextColor(Color.WHITE);
-        pin.setHintTextColor(Color.LTGRAY);
-        pin.setInputType(InputType.TYPE_CLASS_NUMBER |
-                InputType.TYPE_NUMBER_VARIATION_PASSWORD);
-        pin.setImeOptions(EditorInfo.IME_ACTION_DONE);
-        pin.setGravity(Gravity.CENTER);
-        card.addView(pin, new LinearLayout.LayoutParams(-1, dp(65)));
-        TextView error = text("", 16, false);
+        card.addView(text("ĐẾN GIỜ NGHỈ NGƠI!", 28, true));
+        card.addView(text("Bạn đã xem TV đủ 60 phút. Hãy nghỉ ngơi nhé!", 21, false));
+        card.addView(text("Dùng remote chọn các số để nhập mã phụ huynh", 17, false));
+
+        StringBuilder entered = new StringBuilder();
+        TextView pinDisplay = text("○ ○ ○ ○", 28, true);
+        card.addView(pinDisplay);
+        TextView error = text("", 15, false);
         card.addView(error);
-        Button unlock = new Button(this);
-        unlock.setText("Tiếp tục xem");
-        unlock.setTextSize(22);
-        unlock.setAllCaps(false);
-        unlock.setTextColor(Color.WHITE);
-        unlock.setBackground(rounded(NORMAL, 12, false));
-        unlock.setOnFocusChangeListener((v, hasFocus) ->
-            unlock.setBackground(rounded(hasFocus ? GREEN : NORMAL, 12, hasFocus)));
+
+        Runnable refresh = () -> {
+            StringBuilder dots = new StringBuilder();
+            for (int i=0; i<4; i++) {
+                if (i>0) dots.append(" ");
+                dots.append(i<entered.length() ? "●" : "○");
+            }
+            pinDisplay.setText(dots.toString());
+        };
         Runnable validate = () -> {
-            if (PARENT_PIN.equals(pin.getText().toString())) {
+            if (PARENT_PIN.equals(entered.toString())) {
                 watchedMs = 0;
                 nextQuizMs = interval();
                 breakLocked = false;
                 quizActive = false;
+                entered.setLength(0);
                 persist();
                 closeOverlay();
                 lastTick = SystemClock.elapsedRealtime();
-                Toast.makeText(this, "Đã mở khóa. Có thể tiếp tục xem.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Đã mở khóa. Có thể tiếp tục xem.",
+                        Toast.LENGTH_SHORT).show();
             } else {
-                error.setText("Mật khẩu không đúng");
-                pin.setText("");
-                pin.requestFocus();
+                entered.setLength(0);
+                refresh.run();
+                error.setText("Mật khẩu không đúng. Hãy nhập lại.");
             }
         };
-        unlock.setOnClickListener(v -> validate.run());
-        pin.setOnEditorActionListener((v, actionId, event) -> {
-            validate.run();
-            return true;
+        Runnable delete = () -> {
+            if (entered.length()>0) entered.deleteCharAt(entered.length()-1);
+            error.setText("");
+            refresh.run();
+        };
+        GridLayout keypad = new GridLayout(this);
+        keypad.setColumnCount(3);
+        keypad.setRowCount(4);
+        keypad.setUseDefaultMargins(false);
+        final Button[] first = new Button[1];
+        String[] keys = {"1","2","3","4","5","6","7","8","9","Xóa","0","OK"};
+        for (int i=0; i<keys.length; i++) {
+            final String keyName=keys[i];
+            Runnable click;
+            if ("Xóa".equals(keyName)) click=delete;
+            else if ("OK".equals(keyName)) click=validate;
+            else click=() -> {
+                if (entered.length()<4) entered.append(keyName);
+                error.setText("");
+                refresh.run();
+                // Submit as soon as all four numbers have been entered.
+                if (entered.length()==4) validate.run();
+            };
+            Button b=pinKey(keyName,click);
+            if (first[0]==null) first[0]=b;
+            GridLayout.LayoutParams lp=new GridLayout.LayoutParams(
+                    GridLayout.spec(i/3), GridLayout.spec(i%3, 1f));
+            lp.width=0;
+            lp.height=dp(57);
+            lp.setMargins(dp(4),dp(3),dp(4),dp(3));
+            keypad.addView(b,lp);
+        }
+        card.addView(keypad,new LinearLayout.LayoutParams(-1,-2));
+        card.addView(text("Di chuyển bằng ▲ ▼ ◀ ▶, bấm OK để chọn số", 14, false));
+
+        // Physical number buttons on compatible remotes are supported too.
+        frame.setOnKeyListener((v,keyCode,event) -> {
+            if (event.getAction()!=KeyEvent.ACTION_DOWN) return false;
+            if (keyCode==KeyEvent.KEYCODE_DEL) { delete.run(); return true; }
+            if (keyCode>=KeyEvent.KEYCODE_0 && keyCode<=KeyEvent.KEYCODE_9) {
+                int digit=keyCode-KeyEvent.KEYCODE_0;
+                if (entered.length()<4) entered.append(digit);
+                error.setText("");
+                refresh.run();
+                if (entered.length()==4) validate.run();
+                return true;
+            }
+            return false;
         });
-        card.addView(unlock, new LinearLayout.LayoutParams(-1, dp(65)));
-        mount(frame, pin);
+        mount(frame,first[0]);
     }
 
     private void closeOverlay() {
