@@ -147,11 +147,7 @@ public class MainActivity extends Activity {
             startServiceWithAction("TEST");
         });
 
-        action("Tắt", () -> {
-            prefs.edit().putBoolean("enabled", false).apply();
-            stopService(new Intent(this, QuizService.class));
-            showPanel();
-        });
+        action("Tắt", this::confirmStopWithPin);
 
         panel.addView(label("Trạng thái: " +
                 (prefs.getBoolean("enabled", false) ? "Đã bật" : "Đã tắt"), 19, true));
@@ -159,6 +155,41 @@ public class MainActivity extends Activity {
 
         root.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
         setContentView(root);
+    }
+
+
+    private void confirmStopWithPin() {
+        EditText input = new EditText(this);
+        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER |
+                android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+        input.setSingleLine(true);
+        input.setHint("Mã phụ huynh");
+        input.setTextSize(22);
+        FrameLayout holder = new FrameLayout(this);
+        holder.setPadding(dp(28), dp(8), dp(28), dp(8));
+        holder.addView(input, new FrameLayout.LayoutParams(-1, dp(64)));
+        android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(this)
+                .setTitle("Xác nhận tắt giám sát")
+                .setMessage("Nhập mã phụ huynh để tắt ứng dụng.")
+                .setView(holder)
+                .setNegativeButton("Quay lại", null)
+                .setPositiveButton("Xác nhận", null)
+                .create();
+        dialog.setOnShowListener(unused -> {
+            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                if ("2001".equals(input.getText().toString())) {
+                    prefs.edit().putBoolean("enabled", false).apply();
+                    stopService(new Intent(this, QuizService.class));
+                    dialog.dismiss();
+                    showPanel();
+                } else {
+                    input.setText("");
+                    input.setError("Mã không đúng");
+                    input.requestFocus();
+                }
+            });
+        });
+        dialog.show();
     }
 
     @Override public void onResume() {
