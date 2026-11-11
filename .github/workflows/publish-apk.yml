@@ -59,11 +59,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: tv-latest
-          name: "Bé học rồi xem TV - Lớp 6"
+          name: "Bé học rồi xem TV"
           prerelease: true
           make_latest: false
           overwrite_files: true
           files: BeHocRoiXemTV.apk
           body: |
-            Bản APK thử nghiệm dành cho Sony Android TV. Cần cấp quyền hiển thị trên ứng dụng khác.
-            TV không được bảo đảm chặn được mọi ứng dụng hoặc video phát qua HDMI.
+            Phiên bản 0.4: 100 câu hỏi; mỗi lượt cần 3 câu đúng; trả lời sai tăng thêm 1 câu cần đúng; 60 phút hiển thị nhắc nghỉ và màn hình mã phụ huynh.
+            Cần cấp quyền hiển thị trên ứng dụng khác. Mã phụ huynh mặc định được thiết lập trong ứng dụng.
+            Giới hạn kỹ thuật: ứng dụng lớp phủ không thể bảo đảm khóa hoàn toàn Android TV hoặc HDMI.
