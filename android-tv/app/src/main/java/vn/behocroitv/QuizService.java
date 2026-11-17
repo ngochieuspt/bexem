@@ -68,14 +68,16 @@ public class QuizService extends Service {
                 watchedMs += delta;
                 nextQuizMs -= delta;
             }
-            if (watchedMs >= MAX_WATCH_MS) {
+            if (watchedMs >= MAX_WATCH_MS && !breakLocked) {
                 watchedMs = MAX_WATCH_MS;
                 breakLocked = true;
                 quizActive = false;
                 if (overlay != null) closeOverlay();
                 showBreak();
                 persist();
-            } else if (!breakLocked && !quizActive && nextQuizMs <= 0) {
+            } else if (breakLocked) {
+                if (overlay == null) showBreak();
+            } else if (!quizActive && nextQuizMs <= 0) {
                 startQuizRound();
             }
             if (now - lastSaved >= 5000) persist();
